@@ -44,7 +44,22 @@
 const stringToNumber = (N) => parseFloat(N);
 const roundToInt = (N) => Math.round(N);
 const pipeCountOfSymbols = R.pipe(intToString, countOfSymbols);
-//const getApiResult = R.pick('result');
+const getApiResult = R.prop('result');
+const getPromiseAnimal = (N) => api.get(`https://animals.tech/${N}`,{});
+const getPromiseNumber = (N) => api.get('https://api.tech/numbers/base', {from: 10, to: 2, number: N});
+const promiseAnimalPipe = R.pipe(
+    getPromiseAnimal, 
+    R.andThen(getApiResult)
+);
+
+const promiseNumberPipe = R.pipe(
+    getPromiseNumber, 
+    R.andThen(getApiResult)
+);
+
+const promiseFunction = (fn) => new Promise (async (res, rej) => {
+    R.tryCatch(res, rej)(fn);
+});
 
 const squaring = (N) => N*N;
 const modThree = (N) => N%3;
@@ -53,36 +68,11 @@ const modThree = (N) => N%3;
 
     const validationError = () => handleError('ValidationError');
     const tapWriteLog = R.tap(writeLog);
-    
+
     writeLog(value);
-
-    const getAnimal = (N) => 
-        new Promise (async (res, rej) => {
-            try{
-                await api.get(`https://animals.tech/${N}`,{}).then(({result}) => {
-                return res(result);
-                })
-            }
-            catch(e){
-                handleError(e);
-                rej(e);
-            }
-    });
-
-    const getNumberByApi = (N) => 
-        new Promise (async (res, rej) => {
-            try{
-                api.get('https://api.tech/numbers/base', {from: 10, to: 2, number: N}).then(({result}) => {
-                    //console.log(result);
-                    return res(result);
-                })
-            }
-            catch(e){
-                handleError(e);
-                rej(e);
-            }
-        });
-
+    const getAnimal = (N) => promiseFunction(promiseAnimalPipe(N))
+    const getNumberByApi = (N) => promiseFunction(promiseNumberPipe(N))
+        
     const process = R.pipe(
         stringToNumber,
         roundToInt,
